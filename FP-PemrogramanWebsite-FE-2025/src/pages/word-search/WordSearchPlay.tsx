@@ -32,6 +32,7 @@ export default function WordSearchPlay() {
   // Game state
   const [grid, setGrid] = useState<string[][]>([]);
   const [foundWords, setFoundWords] = useState<Set<string>>(new Set());
+  const [foundCells, setFoundCells] = useState<Set<string>>(new Set()); // Track found cell positions
   const [selectedCells, setSelectedCells] = useState<Array<{ row: number; col: number }>>([]);
   const [isSelecting, setIsSelecting] = useState(false);
   const [timeLeft, setTimeLeft] = useState<number>(0);
@@ -125,19 +126,35 @@ export default function WordSearchPlay() {
     // Get selected word
     const word = selectedCells.map(cell => grid[cell.row][cell.col]).join('');
     const reverseWord = word.split('').reverse().join('');
+    
+    console.log('Selected word:', word);
+    console.log('Reverse word:', reverseWord);
+    console.log('Available words:', game.game_json.words);
 
-    // Check if word is in the list and not already found
-    if (
-      (game.game_json.words.includes(word.toUpperCase()) ||
-        game.game_json.words.includes(reverseWord.toUpperCase())) &&
-      !foundWords.has(word.toUpperCase()) &&
-      !foundWords.has(reverseWord.toUpperCase())
-    ) {
-      const foundWord = game.game_json.words.includes(word.toUpperCase())
-        ? word.toUpperCase()
-        : reverseWord.toUpperCase();
-      setFoundWords(prev => new Set([...prev, foundWord]));
+    // Check if word is in the list (handle words with * prefix)
+    const matchedWord = game.game_json.words.find(w => {
+      const cleanWord = w.startsWith('*') ? w.substring(1) : w;
+      console.log('Checking:', cleanWord, 'vs', word, 'or', reverseWord);
+      return cleanWord.toUpperCase() === word.toUpperCase() || 
+             cleanWord.toUpperCase() === reverseWord.toUpperCase();
+    });
+
+    console.log('Matched word:', matchedWord);
+    console.log('Already found:', Array.from(foundWords));
+
+    if (matchedWord && !foundWords.has(matchedWord)) {
+      setFoundWords(prev => new Set([...prev, matchedWord]));
+      // Save all selected cells as found
+      setFoundCells(prev => {
+        const newSet = new Set(prev);
+        selectedCells.forEach(cell => {
+          newSet.add(`${cell.row}-${cell.col}`);
+        });
+        return newSet;
+      });
+      console.log('✅ FOUND WORD:', matchedWord);
     } else if (selectedCells.length >= 2) {
+      console.log('❌ Wrong word or already found');
       // Wrong word selected
       setLivesLeft(prev => {
         const newLives = prev - 1;
@@ -159,7 +176,7 @@ export default function WordSearchPlay() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-purple-100">
+      <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-purple-50 to-purple-100">
         <div className="text-2xl text-purple-600">Loading game...</div>
       </div>
     );
@@ -167,7 +184,7 @@ export default function WordSearchPlay() {
 
   if (error || !game) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-purple-50 to-purple-100">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-linear-to-br from-purple-50 to-purple-100">
         <div className="text-2xl text-red-600 mb-4">{error || 'Game not found'}</div>
         <button
           onClick={() => navigate('/my-projects')}
@@ -180,7 +197,7 @@ export default function WordSearchPlay() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-purple-100 p-8">
+    <div className="min-h-screen bg-linear-to-br from-purple-50 to-purple-100 p-8">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="bg-white rounded-2xl shadow-xl p-6 mb-6">
@@ -255,48 +272,33 @@ export default function WordSearchPlay() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Word Grid */}
           <div className="lg:col-span-2">
-            <div className="bg-white rounded-2xl shadow-xl p-8">
-              <div
-                className="inline-block"
-                onMouseLeave={() => {
-                  if (isSelecting) handleMouseUp();
-                }}
-              >
+            <div className="bg-white rounded-2xl shadow-xl p-4 md:p-6 lg:p-8">
+              <div className="overflow-x-auto">
+                <div
+                  className="inline-block min-w-min"
+                  onMouseLeave={() => {
+                    if (isSelecting) handleMouseUp();
+                  }}
+                >
                 {grid.map((row, rowIndex) => (
                   <div key={rowIndex} className="flex">
                     {row.map((letter, colIndex) => {
+                      const cellKey = `${rowIndex}-${colIndex}`;
+                      const isInFoundWord = foundCells.has(cellKey);
                       const isSelected = selectedCells.some(
                         cell => cell.row === rowIndex && cell.col === colIndex
                       );
-                      const isInFoundWord = game.game_json.placed_words.some(placedWord => {
-                        if (!foundWords.has(placedWord.word)) return false;
-                        const { start, end } = placedWord;
-                        const rowDiff = end.row - start.row;
-                        const colDiff = end.col - start.col;
-                        const steps = Math.max(Math.abs(rowDiff), Math.abs(colDiff));
-                        const rowStep = rowDiff === 0 ? 0 : rowDiff / steps;
-                        const colStep = colDiff === 0 ? 0 : colDiff / steps;
-
-                        for (let i = 0; i <= steps; i++) {
-                          const currentRow = start.row + i * rowStep;
-                          const currentCol = start.col + i * colStep;
-                          if (currentRow === rowIndex && currentCol === colIndex) {
-                            return true;
-                          }
-                        }
-                        return false;
-                      });
 
                       return (
                         <div
                           key={colIndex}
                           className={`
-                            w-12 h-12 flex items-center justify-center m-1
-                            text-xl font-bold border-2 rounded-lg cursor-pointer
+                            w-8 h-8 md:w-9 md:h-9 lg:w-10 lg:h-10 flex items-center justify-center m-0.5
+                            text-sm md:text-base lg:text-lg font-bold border-2 rounded-md cursor-pointer
                             select-none transition-all duration-150
                             ${
                               isInFoundWord
-                                ? 'bg-green-400 border-green-600 text-white'
+                                ? 'bg-purple-500 border-purple-700 text-white shadow-lg scale-105'
                                 : isSelected
                                   ? 'bg-purple-400 border-purple-600 text-white'
                                   : 'bg-purple-50 border-purple-200 text-purple-900 hover:bg-purple-100'
@@ -312,6 +314,7 @@ export default function WordSearchPlay() {
                     })}
                   </div>
                 ))}
+                </div>
               </div>
             </div>
           </div>
@@ -320,21 +323,30 @@ export default function WordSearchPlay() {
           <div className="bg-white rounded-2xl shadow-xl p-6">
             <h2 className="text-2xl font-bold text-purple-900 mb-4">Words to Find</h2>
             <div className="space-y-2">
-              {game.game_json.words.map((word, index) => (
-                <div
-                  key={index}
-                  className={`
-                    px-4 py-2 rounded-lg font-medium transition-all
-                    ${
-                      foundWords.has(word)
-                        ? 'bg-green-100 text-green-700 line-through'
-                        : 'bg-purple-50 text-purple-700'
-                    }
-                  `}
-                >
-                  {word}
-                </div>
-              ))}
+              {game.game_json.words.map((word, index) => {
+                const cleanWord = word.startsWith('*') ? word.substring(1) : word;
+                const isFound = foundWords.has(word) || foundWords.has(cleanWord);
+                return (
+                  <div
+                    key={index}
+                    className={`
+                      px-4 py-2 rounded-lg font-semibold transition-all flex items-center gap-3
+                      ${
+                        isFound
+                          ? 'bg-green-100 text-green-700'
+                          : 'bg-purple-50 text-purple-700'
+                      }
+                    `}
+                  >
+                    {isFound && (
+                      <svg className="w-5 h-5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    )}
+                    <span className={isFound ? 'line-through' : ''}>{cleanWord}</span>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
