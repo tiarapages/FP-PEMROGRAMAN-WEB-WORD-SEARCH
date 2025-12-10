@@ -186,7 +186,15 @@ export default function HomePage() {
 
   const GameCard = ({ game }: { game: Game }) => {
     const handlePlayGame = () => {
-      window.location.href = `/quiz/play/${game.id}`;
+      // Navigate to play page based on game template
+      if (game.game_template === 'Quiz') {
+        window.location.href = `/quiz/play/${game.id}`;
+      } else if (game.game_template === 'Word Search') {
+        window.location.href = `/word-search-play/${game.id}`;
+      } else {
+        // Default to quiz if unknown
+        window.location.href = `/quiz/play/${game.id}`;
+      }
     };
 
     return (

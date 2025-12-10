@@ -58,10 +58,20 @@ export default function MyProjectsPage() {
     fetchProjects();
   }, []);
 
-  const handleDeleteProject = async (projectId: string) => {
+  const handleDeleteProject = async (projectId: string, gameTemplate: string) => {
     try {
-      // Endpoint yang benar untuk delete game (general, bukan spesifik quiz/word-search)
-      await api.delete(`/api/game/${projectId}`);
+      // Delete endpoint berbeda berdasarkan game type
+      let endpoint = '';
+      if (gameTemplate === 'Quiz') {
+        endpoint = `/api/game/game-type/quiz/${projectId}`;
+      } else if (gameTemplate === 'Word Search') {
+        endpoint = `/api/game/game-type/word-search/${projectId}`;
+      } else {
+        toast.error('Unknown game type');
+        return;
+      }
+      
+      await api.delete(endpoint);
       setProjects((prev) => prev.filter((p) => p.id !== projectId));
       toast.success("Project deleted successfully!");
     } catch (err) {
@@ -182,49 +192,44 @@ export default function MyProjectsPage() {
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-2 mt-6 md:mt-2">
-                  {project.is_published ? (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-7"
-                      onClick={() => {
-                        navigate(`/quiz/play/${project.id}`);
-                      }}
-                    >
-                      <Play />
-                      Play
-                    </Button>
-                  ) : null}
                   <Button
                     variant="outline"
                     size="sm"
                     className="h-7"
                     onClick={() => {
-                      navigate(`/quiz/edit/${project.id}`);
+                      // Navigate to edit page based on game type
+                      if (project.game_template === 'Quiz') {
+                        navigate(`/quiz/edit/${project.id}`);
+                      } else if (project.game_template === 'Word Search') {
+                        navigate(`/edit-word-search/${project.id}`);
+                      } else {
+                        navigate(`/quiz/edit/${project.id}`);
+                      }
                     }}
                   >
                     <Edit />
                     Edit
                   </Button>
-                  <Button
-                    variant="default"
-                    size="sm"
-                    className="h-7 bg-green-600 hover:bg-green-700"
-                    onClick={() => {
-                      // Navigate to play page - check game template name
-                      if (project.game_template === 'Quiz') {
-                        navigate(`/quiz/play/${project.id}`);
-                      } else if (project.game_template === 'Word Search') {
-                        navigate(`/word-search-play/${project.id}`);
-                      } else {
-                        // Default to quiz if unknown
-                        navigate(`/quiz/play/${project.id}`);
-                      }
-                    }}
-                  >
-                    <Play />
-                    Play
-                  </Button>
+                  {project.is_published && (
+                    <Button
+                      variant="default"
+                      size="sm"
+                      className="h-7 bg-green-600 hover:bg-green-700"
+                      onClick={() => {
+                        // Navigate to play page - check game template name
+                        if (project.game_template === 'Quiz') {
+                          navigate(`/quiz/play/${project.id}`);
+                        } else if (project.game_template === 'Word Search') {
+                          navigate(`/word-search-play/${project.id}`);
+                        } else {
+                          navigate(`/quiz/play/${project.id}`);
+                        }
+                      }}
+                    >
+                      <Play />
+                      Play
+                    </Button>
+                  )}
                   {project.is_published ? (
                     <Button
                       variant="outline"
@@ -277,7 +282,7 @@ export default function MyProjectsPage() {
                         <AlertDialogAction
                           className="bg-red-600 hover:bg-red-700"
                           onClick={() => {
-                            handleDeleteProject(project.id);
+                            handleDeleteProject(project.id, project.game_template);
                           }}
                         >
                           Yes, Delete

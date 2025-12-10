@@ -126,6 +126,13 @@ export default function CreateWordSearch() {
       return;
     }
 
+    // Validate grid size vs longest word
+    const longestWord = Math.max(...words.map(w => w.length));
+    if (data.grid_size < longestWord) {
+      toast.error(`Grid size must be at least ${longestWord} (length of longest word: "${words.find(w => w.length === longestWord)}")`);
+      return;
+    }
+
     setIsLoading(true);
     
     try {
@@ -305,12 +312,19 @@ export default function CreateWordSearch() {
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <Label htmlFor="grid_size">Grid Size (8-20)</Label>
+                <Label htmlFor="grid_size">
+                  Grid Size (8-20)
+                  {words.length > 0 && (
+                    <span className="ml-2 text-xs font-normal text-purple-600">
+                      Min: {Math.max(...words.map(w => w.length))} (longest word)
+                    </span>
+                  )}
+                </Label>
                 <Input
                   id="grid_size"
                   type="number"
                   {...register('grid_size')}
-                  min={8}
+                  min={Math.max(8, ...words.map(w => w.length))}
                   max={20}
                   className="mt-1"
                 />
@@ -411,7 +425,7 @@ export default function CreateWordSearch() {
             <Button
               type="submit"
               disabled={isLoading || words.length === 0}
-              className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+              className="flex-1 bg-linear-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
             >
               {isLoading ? 'Creating...' : 'Create Game'}
             </Button>
