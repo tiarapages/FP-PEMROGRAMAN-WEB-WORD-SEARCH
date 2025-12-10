@@ -55,32 +55,7 @@ export const WordSearchController = Router()
       }
     },
   )
-  .get(
-    '/:game_id',
-    validateAuth({}),
-    async (
-      request: AuthedRequest<{ game_id: string }>,
-      response: Response,
-      next: NextFunction,
-    ) => {
-      try {
-        const game = await WordSearchService.getWordSearchGameDetail(
-          request.params.game_id,
-          request.user!.user_id,
-          request.user!.role,
-        );
-        const result = new SuccessResponse(
-          StatusCodes.OK,
-          'Get game successfully',
-          game,
-        );
-
-        return response.status(result.statusCode).json(result.json());
-      } catch (error) {
-        return next(error);
-      }
-    },
-  )
+  // IMPORTANT: Specific routes MUST come before generic /:game_id route
   .get(
     '/:game_id/play/public',
     async (
@@ -123,6 +98,32 @@ export const WordSearchController = Router()
         const result = new SuccessResponse(
           StatusCodes.OK,
           'Get private game successfully',
+          game,
+        );
+
+        return response.status(result.statusCode).json(result.json());
+      } catch (error) {
+        return next(error);
+      }
+    },
+  )
+  .get(
+    '/:game_id',
+    validateAuth({}),
+    async (
+      request: AuthedRequest<{ game_id: string }>,
+      response: Response,
+      next: NextFunction,
+    ) => {
+      try {
+        const game = await WordSearchService.getWordSearchGameDetail(
+          request.params.game_id,
+          request.user!.user_id,
+          request.user!.role,
+        );
+        const result = new SuccessResponse(
+          StatusCodes.OK,
+          'Get game successfully',
           game,
         );
 

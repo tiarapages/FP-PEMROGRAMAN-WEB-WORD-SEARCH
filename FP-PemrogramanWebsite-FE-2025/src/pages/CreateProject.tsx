@@ -61,6 +61,9 @@ export default function CreateProject() {
   const handleTemplateClick = (template: GameTemplate) => {
     if (template.slug === "quiz") {
       navigate("/create-quiz");
+    } else if (template.slug === "word-search") {
+      // Navigate ke halaman create Word Search (bukan langsung ke game)
+      navigate("/create-word-search");
     } else {
       toast.error(`${template.name} template is coming soon!`, {
         duration: 3000,

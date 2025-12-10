@@ -32,7 +32,7 @@ type Project = {
   description: string;
   thumbnail_image: string | null;
   is_published: boolean;
-  game_template: number;
+  game_template: string;
 };
 
 export default function MyProjectsPage() {
@@ -46,6 +46,7 @@ export default function MyProjectsPage() {
       try {
         setLoading(true);
         const response = await api.get("/api/auth/me/game");
+        console.log('Fetched projects:', response.data.data);
         setProjects(response.data.data);
       } catch (err) {
         setError("Failed to fetch projects. Please try again later.");
@@ -59,7 +60,8 @@ export default function MyProjectsPage() {
 
   const handleDeleteProject = async (projectId: string) => {
     try {
-      await api.delete(`/api/game/game-type/quiz/${projectId}`);
+      // Endpoint yang benar untuk delete game (general, bukan spesifik quiz/word-search)
+      await api.delete(`/api/game/${projectId}`);
       setProjects((prev) => prev.filter((p) => p.id !== projectId));
       toast.success("Project deleted successfully!");
     } catch (err) {
@@ -70,10 +72,11 @@ export default function MyProjectsPage() {
 
   const handleUpdateStatus = async (gameId: string, isPublish: boolean) => {
     try {
-      const form = new FormData();
-      form.append("is_publish", String(isPublish));
-
-      await api.patch(`/api/game/game-type/quiz/${gameId}`, form);
+      // Endpoint yang benar: PATCH /api/game dengan body game_id dan is_publish
+      await api.patch('/api/game', {
+        game_id: gameId,
+        is_publish: isPublish,
+      });
 
       setProjects((prev) =>
         prev.map((p) =>
@@ -202,6 +205,25 @@ export default function MyProjectsPage() {
                   >
                     <Edit />
                     Edit
+                  </Button>
+                  <Button
+                    variant="default"
+                    size="sm"
+                    className="h-7 bg-green-600 hover:bg-green-700"
+                    onClick={() => {
+                      // Navigate to play page - check game template name
+                      if (project.game_template === 'Quiz') {
+                        navigate(`/quiz/play/${project.id}`);
+                      } else if (project.game_template === 'Word Search') {
+                        navigate(`/word-search-play/${project.id}`);
+                      } else {
+                        // Default to quiz if unknown
+                        navigate(`/quiz/play/${project.id}`);
+                      }
+                    }}
+                  >
+                    <Play />
+                    Play
                   </Button>
                   {project.is_published ? (
                     <Button
