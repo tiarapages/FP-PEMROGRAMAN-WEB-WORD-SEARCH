@@ -42,8 +42,10 @@ export default function WordSearchPlay() {
     const fetchGame = async () => {
       try {
         setLoading(true);
-        const response = await axiosInstance.get(`/api/game/game-type/word-search/${gameId}`);
+        const response = await axiosInstance.get(`/api/game/game-type/word-search/${gameId}/play/public`);
         const gameData = response.data.data;
+        console.log('Game data received:', gameData);
+        console.log('Words array:', gameData.game_json.words);
         setGame(gameData);
         setGrid(gameData.game_json.grid);
         setTimeLeft(gameData.game_json.time_limit);

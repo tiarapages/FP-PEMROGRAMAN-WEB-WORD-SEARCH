@@ -362,12 +362,16 @@ export abstract class WordSearchService {
       id: game.id,
       name: game.name,
       description: game.description,
-      thumbnail_image: game.thumbnail_image, // ✅ Return thumbnail
-      grid: wordSearchJson.grid,
-      words: (wordSearchJson.words || []).map((w: IWordSearchWord) => w.word),
-      grid_size: wordSearchJson.grid_size,
-      time_limit: wordSearchJson.time_limit,
-      lives: wordSearchJson.lives,
+      thumbnail_image: game.thumbnail_image,
+      game_json: {
+        grid: wordSearchJson.grid,
+        words: (wordSearchJson.words || []).map((w: IWordSearchWord) => w.word),
+        grid_size: wordSearchJson.grid_size,
+        time_limit: wordSearchJson.time_limit,
+        lives: wordSearchJson.lives,
+        directions: wordSearchJson.directions || [],
+        placed_words: wordSearchJson.placed_words || [],
+      },
       is_published: game.is_published,
     };
   }
