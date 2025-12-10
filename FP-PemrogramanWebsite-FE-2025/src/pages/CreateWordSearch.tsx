@@ -9,8 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Checkbox } from '@/components/ui/checkbox';
-import { ArrowLeft, Plus, X, Upload, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Plus, X, Upload, AlertCircle, Smile, Brain, Zap } from 'lucide-react';
 import toast from 'react-hot-toast';
 import {
   AlertDialog,
@@ -37,6 +36,8 @@ const createWordSearchSchema = z.object({
 
 type CreateWordSearchForm = z.infer<typeof createWordSearchSchema>;
 
+type DifficultyLevel = 'easy' | 'medium' | 'hard';
+
 export default function CreateWordSearch() {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
@@ -46,13 +47,13 @@ export default function CreateWordSearch() {
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [showErrorDialog, setShowErrorDialog] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [difficulty, setDifficulty] = useState<DifficultyLevel>('medium');
 
   const {
     register,
     handleSubmit,
     formState: { errors },
     setValue,
-    watch,
   } = useForm<CreateWordSearchForm>({
     resolver: zodResolver(createWordSearchSchema),
     defaultValues: {
@@ -64,7 +65,26 @@ export default function CreateWordSearch() {
     },
   });
 
-  const directions = watch('directions') || [];
+  const getDifficultyLimits = (level: DifficultyLevel) => {
+    switch (level) {
+      case 'easy':
+        return { maxWords: 10, gridSize: 10, timeLimit: 600, lives: 10, directions: ['horizontal', 'vertical'] };
+      case 'medium':
+        return { maxWords: 15, gridSize: 15, timeLimit: 480, lives: 5, directions: ['horizontal', 'vertical', 'diagonal'] };
+      case 'hard':
+        return { maxWords: 20, gridSize: 18, timeLimit: 300, lives: 3, directions: ['horizontal', 'vertical', 'diagonal'] };
+    }
+  };
+
+  const applyDifficultyPreset = (level: DifficultyLevel) => {
+    setDifficulty(level);
+    const limits = getDifficultyLimits(level);
+    
+    setValue('grid_size', limits.gridSize);
+    setValue('time_limit', limits.timeLimit);
+    setValue('lives', limits.lives);
+    setValue('directions', limits.directions as ('horizontal' | 'vertical' | 'diagonal')[]);
+  };
 
   const handleAddWord = () => {
     const trimmedWord = wordInput.trim().toUpperCase();
@@ -76,10 +96,13 @@ export default function CreateWordSearch() {
       toast.error('Word already added');
       return;
     }
-    if (words.length >= 20) {
-      toast.error('Maximum 20 words');
+    
+    const maxWords = getDifficultyLimits(difficulty).maxWords;
+    if (words.length >= maxWords) {
+      toast.error(`Maximum ${maxWords} words for ${difficulty.toUpperCase()} difficulty`);
       return;
     }
+    
     const newWords = [...words, trimmedWord];
     setWords(newWords);
     setValue('words', newWords);
@@ -106,24 +129,6 @@ export default function CreateWordSearch() {
       };
       reader.readAsDataURL(file);
     }
-  };
-
-  const handleDirectionToggle = (direction: 'horizontal' | 'vertical' | 'diagonal') => {
-    const current = directions || [];
-    let newDirections;
-    
-    if (current.includes(direction)) {
-      newDirections = current.filter(d => d !== direction);
-    } else {
-      newDirections = [...current, direction];
-    }
-    
-    if (newDirections.length === 0) {
-      toast.error('At least one direction must be selected');
-      return;
-    }
-    
-    setValue('directions', newDirections);
   };
 
   const onSubmit = async (data: CreateWordSearchForm) => {
@@ -168,7 +173,7 @@ export default function CreateWordSearch() {
         formData.append('directions[]', dir);
       });
 
-      const response = await axios.post('/api/game/game-type/word-search', formData, {
+      await axios.post('/api/game/game-type/word-search', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -313,107 +318,97 @@ export default function CreateWordSearch() {
                 ))
               )}
             </div>
-            <p className="text-xs text-slate-500">{words.length}/20 words added</p>
+            <p className="text-xs text-slate-500">
+              {words.length}/{getDifficultyLimits(difficulty).maxWords} words added ({difficulty.toUpperCase()} limit)
+            </p>
             {errors.words && (
               <p className="text-sm text-red-500">{errors.words.message}</p>
             )}
           </div>
 
-          {/* Game Settings */}
+          {/* Difficulty Selector */}
           <div className="bg-white rounded-xl shadow-sm border p-6 space-y-4">
-            <h2 className="text-lg font-semibold text-slate-900">Game Settings</h2>
+            <h2 className="text-lg font-semibold text-slate-900">Difficulty Level *</h2>
+            <p className="text-sm text-slate-600">Choose difficulty to set game limits (words, grid size, time, lives)</p>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <Label htmlFor="grid_size">
-                  Grid Size (8-20)
-                  {words.length > 0 && (
-                    <span className="ml-2 text-xs font-normal text-purple-600">
-                      Min: {Math.max(...words.map(w => w.length))} (longest word)
-                    </span>
-                  )}
-                </Label>
-                <Input
-                  id="grid_size"
-                  type="number"
-                  {...register('grid_size')}
-                  min={Math.max(8, ...words.map(w => w.length))}
-                  max={20}
-                  className="mt-1"
-                />
-                {errors.grid_size && (
-                  <p className="text-sm text-red-500 mt-1">{errors.grid_size.message}</p>
-                )}
-              </div>
+              <button
+                type="button"
+                onClick={() => applyDifficultyPreset('easy')}
+                className={`p-4 rounded-lg border-2 transition-all ${
+                  difficulty === 'easy'
+                    ? 'border-green-500 bg-green-50'
+                    : 'border-slate-200 hover:border-green-300'
+                }`}
+              >
+                <div className="text-center">
+                  <div className="flex justify-center mb-2">
+                    <Smile className="w-8 h-8 text-green-600" />
+                  </div>
+                  <h3 className="font-bold text-green-700 mb-1">Easy</h3>
+                  <div className="text-xs text-slate-600 space-y-1">
+                    <p className="font-semibold text-green-600">Max 10 words</p>
+                    <p>Grid: 10x10</p>
+                    <p>Time: 10 min</p>
+                    <p>Lives: 10</p>
+                    <p>Directions: H + V</p>
+                  </div>
+                </div>
+              </button>
 
-              <div>
-                <Label htmlFor="time_limit">Time Limit (seconds)</Label>
-                <Input
-                  id="time_limit"
-                  type="number"
-                  {...register('time_limit')}
-                  min={30}
-                  max={600}
-                  className="mt-1"
-                />
-                {errors.time_limit && (
-                  <p className="text-sm text-red-500 mt-1">{errors.time_limit.message}</p>
-                )}
-              </div>
+              <button
+                type="button"
+                onClick={() => applyDifficultyPreset('medium')}
+                className={`p-4 rounded-lg border-2 transition-all ${
+                  difficulty === 'medium'
+                    ? 'border-yellow-500 bg-yellow-50'
+                    : 'border-slate-200 hover:border-yellow-300'
+                }`}
+              >
+                <div className="text-center">
+                  <div className="flex justify-center mb-2">
+                    <Brain className="w-8 h-8 text-yellow-600" />
+                  </div>
+                  <h3 className="font-bold text-yellow-700 mb-1">Medium</h3>
+                  <div className="text-xs text-slate-600 space-y-1">
+                    <p className="font-semibold text-yellow-600">Max 15 words</p>
+                    <p>Grid: 15x15</p>
+                    <p>Time: 8 min</p>
+                    <p>Lives: 5</p>
+                    <p>Directions: H + V + D</p>
+                  </div>
+                </div>
+              </button>
 
-              <div>
-                <Label htmlFor="lives">Lives (1-10)</Label>
-                <Input
-                  id="lives"
-                  type="number"
-                  {...register('lives')}
-                  min={1}
-                  max={10}
-                  className="mt-1"
-                />
-                {errors.lives && (
-                  <p className="text-sm text-red-500 mt-1">{errors.lives.message}</p>
-                )}
-              </div>
+              <button
+                type="button"
+                onClick={() => applyDifficultyPreset('hard')}
+                className={`p-4 rounded-lg border-2 transition-all ${
+                  difficulty === 'hard'
+                    ? 'border-red-500 bg-red-50'
+                    : 'border-slate-200 hover:border-red-300'
+                }`}
+              >
+                <div className="text-center">
+                  <div className="flex justify-center mb-2">
+                    <Zap className="w-8 h-8 text-red-600" />
+                  </div>
+                  <h3 className="font-bold text-red-700 mb-1">Hard</h3>
+                  <div className="text-xs text-slate-600 space-y-1">
+                    <p className="font-semibold text-red-600">Max 20 words</p>
+                    <p>Grid: 18x18</p>
+                    <p>Time: 5 min</p>
+                    <p>Lives: 3</p>
+                    <p>Directions: H + V + D</p>
+                  </div>
+                </div>
+              </button>
             </div>
+          </div>
 
-            <div>
-              <Label>Word Directions</Label>
-              <div className="flex gap-4 mt-2">
-                <div className="flex items-center">
-                  <Checkbox
-                    id="horizontal"
-                    checked={directions.includes('horizontal')}
-                    onCheckedChange={() => handleDirectionToggle('horizontal')}
-                  />
-                  <Label htmlFor="horizontal" className="ml-2 cursor-pointer">
-                    Horizontal
-                  </Label>
-                </div>
-                <div className="flex items-center">
-                  <Checkbox
-                    id="vertical"
-                    checked={directions.includes('vertical')}
-                    onCheckedChange={() => handleDirectionToggle('vertical')}
-                  />
-                  <Label htmlFor="vertical" className="ml-2 cursor-pointer">
-                    Vertical
-                  </Label>
-                </div>
-                <div className="flex items-center">
-                  <Checkbox
-                    id="diagonal"
-                    checked={directions.includes('diagonal')}
-                    onCheckedChange={() => handleDirectionToggle('diagonal')}
-                  />
-                  <Label htmlFor="diagonal" className="ml-2 cursor-pointer">
-                    Diagonal
-                  </Label>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between pt-2">
+          {/* Publish Setting */}
+          <div className="bg-white rounded-xl shadow-sm border p-6">
+            <div className="flex items-center justify-between">
               <div>
                 <Label htmlFor="publish">Publish Immediately</Label>
                 <p className="text-xs text-slate-500">Make game public right away</p>
