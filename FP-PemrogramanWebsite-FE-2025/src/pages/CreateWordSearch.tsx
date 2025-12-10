@@ -10,8 +10,17 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
-import { ArrowLeft, Plus, X, Upload } from 'lucide-react';
+import { ArrowLeft, Plus, X, Upload, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 // Schema sesuai BE
 const createWordSearchSchema = z.object({
@@ -35,6 +44,8 @@ export default function CreateWordSearch() {
   const [words, setWords] = useState<string[]>([]);
   const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
+  const [showErrorDialog, setShowErrorDialog] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   const {
     register,
@@ -129,7 +140,9 @@ export default function CreateWordSearch() {
     // Validate grid size vs longest word
     const longestWord = Math.max(...words.map(w => w.length));
     if (data.grid_size < longestWord) {
-      toast.error(`Grid size must be at least ${longestWord} (length of longest word: "${words.find(w => w.length === longestWord)}")`);
+      const longestWordText = words.find(w => w.length === longestWord);
+      setErrorMessage(`Grid size must be at least ${longestWord} to fit the longest word: "${longestWordText}" (${longestWord} characters)`);
+      setShowErrorDialog(true);
       return;
     }
 
@@ -431,6 +444,23 @@ export default function CreateWordSearch() {
             </Button>
           </div>
         </form>
+
+        {/* Error Dialog */}
+        <AlertDialog open={showErrorDialog} onOpenChange={setShowErrorDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle className="text-red-600">Grid Size Too Small!</AlertDialogTitle>
+              <AlertDialogDescription className="text-base">
+                {errorMessage}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogAction onClick={() => setShowErrorDialog(false)}>
+                Got it!
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   );
