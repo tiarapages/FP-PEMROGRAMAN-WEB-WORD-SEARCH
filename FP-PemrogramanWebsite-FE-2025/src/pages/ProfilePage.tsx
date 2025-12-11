@@ -64,7 +64,7 @@ export default function ProfilePage() {
                   <AvatarImage
                     src={
                       user?.profile_picture
-                        ? `${import.meta.env.VITE_API_URL}/${user.profile_picture}`
+                        ? `${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/${user.profile_picture}`
                         : undefined
                     }
                     alt="User Avatar"

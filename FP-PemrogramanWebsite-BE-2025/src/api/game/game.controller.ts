@@ -69,6 +69,12 @@ export const GameController = Router()
       next: NextFunction,
     ) => {
       try {
+        console.log('[PATCH /api/game] Request body:', request.body);
+        console.log('[PATCH /api/game] User info:', {
+          user_id: request.user?.user_id,
+          role: request.user?.role,
+        });
+        
         const updatedStatus = await GameService.updateGamePublishStatus(
           request.body,
           request.user!.user_id,

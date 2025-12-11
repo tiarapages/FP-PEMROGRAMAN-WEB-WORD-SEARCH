@@ -83,6 +83,7 @@ export default function MyProjectsPage() {
   const handleUpdateStatus = async (gameId: string, isPublish: boolean) => {
     try {
       // Endpoint yang benar: PATCH /api/game dengan body game_id dan is_publish
+      console.log('Sending publish request:', { gameId, isPublish });
       await api.patch('/api/game', {
         game_id: gameId,
         is_publish: isPublish,
@@ -97,9 +98,10 @@ export default function MyProjectsPage() {
       toast.success(
         isPublish ? "Published successfully" : "Unpublished successfully",
       );
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to update publish status:", err);
-      toast.error("Failed to update status. Please try again.");
+      const errorMessage = err?.response?.data?.message || "Failed to update status. Please try again.";
+      toast.error(errorMessage);
     }
   };
 
@@ -154,8 +156,8 @@ export default function MyProjectsPage() {
             <div className="w-full h-full flex flex-col md:flex-row md:items-center gap-4">
               <img
                 src={
-                  project.thumbnail_image
-                    ? `${import.meta.env.VITE_API_URL}/${project.thumbnail_image}`
+                    project.thumbnail_image
+                      ? `${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/${project.thumbnail_image}`
                     : thumbnailPlaceholder
                 }
                 alt={

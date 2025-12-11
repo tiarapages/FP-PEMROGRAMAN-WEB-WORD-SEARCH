@@ -262,10 +262,10 @@ function Quiz() {
 
             {currentQ.question_image && (
               <img
-                src={`${import.meta.env.VITE_API_URL}/${currentQ.question_image}`}
-                alt="Question"
-                className="mx-auto max-h-64 object-contain rounded-md"
-              />
+                  src={`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/${currentQ.question_image}`}
+                  alt="Question"
+                  className="mx-auto max-h-64 object-contain rounded-md"
+                />
             )}
 
             <div className="grid grid-cols-1 gap-4">

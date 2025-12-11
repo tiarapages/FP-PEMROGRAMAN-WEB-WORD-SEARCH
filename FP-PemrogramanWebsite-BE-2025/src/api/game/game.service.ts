@@ -58,7 +58,7 @@ export abstract class GameService {
               select: { id: true },
             }
           : undefined,
-        is_published: is_private,
+        is_published: true,
         game_template: {
           select: {
             name: true,
@@ -93,7 +93,7 @@ export abstract class GameService {
       ...game,
       game_template: game.game_template.name,
       creator: undefined,
-      is_published: is_private ? game.is_published : undefined,
+      is_published: game.is_published,
       creator_id: user_id ? undefined : game.creator.id,
       creator_name: user_id ? undefined : game.creator.username,
       is_game_liked: current_user_id
@@ -147,15 +147,23 @@ export abstract class GameService {
   ) {
     const game = await prisma.games.findUnique({
       where: { id: data.game_id },
-      select: { creator_id: true },
+      select: { creator_id: true, id: true },
     });
 
     if (!game) throw new ErrorResponse(StatusCodes.NOT_FOUND, 'Game not found');
 
+    console.log('[updateGamePublishStatus] Checking authorization:', {
+      game_id: data.game_id,
+      game_creator_id: game.creator_id,
+      user_id,
+      user_role,
+      is_authorized: user_role === 'SUPER_ADMIN' || game.creator_id === user_id,
+    });
+
     if (user_role !== 'SUPER_ADMIN' && game.creator_id !== user_id)
       throw new ErrorResponse(
         StatusCodes.FORBIDDEN,
-        'User not allowed to edit this data',
+        `User not allowed to edit this data. Creator: ${game.creator_id}, User: ${user_id}`,
       );
 
     return await prisma.games.update({

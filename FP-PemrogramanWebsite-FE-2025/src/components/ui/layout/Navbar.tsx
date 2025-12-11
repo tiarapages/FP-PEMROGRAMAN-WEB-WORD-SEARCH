@@ -82,10 +82,10 @@ function ProfileDropdown({ user }: { user: AuthUser | null }) {
       <DropdownMenuTrigger asChild>
         <div className="flex items-center gap-3 cursor-pointer">
           <Avatar className="w-9 h-9">
-            <AvatarImage
+              <AvatarImage
               src={
                 user?.profile_picture
-                  ? `${import.meta.env.VITE_API_URL}/${user.profile_picture}`
+                  ? `${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/${user.profile_picture}`
                   : undefined
               }
               alt="User Avatar"
