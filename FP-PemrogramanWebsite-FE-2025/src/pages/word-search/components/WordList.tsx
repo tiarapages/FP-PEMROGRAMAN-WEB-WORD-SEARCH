@@ -1,5 +1,5 @@
-import type { Word } from '../WordSearchNew';
 import { Check } from 'lucide-react';
+import type { Word } from '../types.ts';
 
 interface WordListProps {
   words: Word[];

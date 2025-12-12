@@ -1,4 +1,4 @@
-import type { GridCell } from '../WordSearchNew';
+import type { GridCell } from '../types.ts';
 
 interface WordSearchGridProps {
   grid: GridCell[][];

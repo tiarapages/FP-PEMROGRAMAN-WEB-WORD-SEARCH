@@ -1,11 +1,11 @@
 import { Button } from '@/components/ui/button';
-import { Pause, Play, Menu } from 'lucide-react';
+import { Pause, Play, Menu, Heart } from 'lucide-react';
 
 interface GameHeaderProps {
   score: number;
   timer: string;
-  round: number;
-  maxRounds: number;
+  lives: number;
+  maxLives: number;
   isPaused: boolean;
   onPause: () => void;
   onExit: () => void;
@@ -14,8 +14,8 @@ interface GameHeaderProps {
 export const GameHeader = ({
   score,
   timer,
-  round,
-  maxRounds,
+  lives,
+  maxLives,
   isPaused,
   onPause,
   onExit
@@ -32,17 +32,25 @@ export const GameHeader = ({
       </Button>
 
       <div className="game-info">
+        {/* LIVES INDICATOR */}
         <div className="info-item">
-          <span className="info-label">Round:</span>
-          <span className="info-value">{round}/{maxRounds}</span>
+          <span className="info-label flex items-center gap-1">
+             Lives
+          </span>
+          <div className="info-value flex items-center gap-2">
+            <Heart className={`w-5 h-5 ${lives > 0 ? 'fill-red-500 text-red-500' : 'text-gray-300'}`} />
+            <span>{lives}/{maxLives}</span>
+          </div>
         </div>
+
         <div className="info-item">
-          <span className="info-label">Score:</span>
+          <span className="info-label">Score</span>
           <span className="info-value score-value">{score}</span>
         </div>
+
         <div className="info-item">
-          <span className="info-label">Time:</span>
-          <span className="info-value">{timer}</span>
+          <span className="info-label">Time</span>
+          <span className="info-value font-mono">{timer}</span>
         </div>
       </div>
 

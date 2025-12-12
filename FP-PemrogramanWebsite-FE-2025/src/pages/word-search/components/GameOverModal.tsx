@@ -4,6 +4,8 @@ import { Trophy, RotateCcw, Home } from 'lucide-react';
 interface GameOverModalProps {
   score: number;
   time: string;
+  totalWordsFound: number;
+  totalWords: number;
   onRestart: () => void;
   onExit: () => void;
 }
@@ -11,9 +13,13 @@ interface GameOverModalProps {
 export const GameOverModal = ({
   score,
   time,
+  totalWordsFound,
+  totalWords,
   onRestart,
   onExit
 }: GameOverModalProps) => {
+  const isPerfect = totalWordsFound === totalWords;
+
   return (
     <div className="game-over-overlay">
       <div className="game-over-modal">
@@ -21,8 +27,12 @@ export const GameOverModal = ({
           <Trophy className="w-16 h-16" />
         </div>
         
-        <h2 className="game-over-title">Congratulations!</h2>
-        <p className="game-over-subtitle">You completed all rounds!</p>
+        <h2 className="game-over-title">
+          {isPerfect ? 'Perfect!' : 'Game Over'}
+        </h2>
+        <p className="game-over-subtitle">
+          {isPerfect ? 'You found all the words!' : 'Great effort!'}
+        </p>
 
         <div className="game-stats">
           <div className="stat-item">
@@ -30,7 +40,11 @@ export const GameOverModal = ({
             <span className="stat-value">{score}</span>
           </div>
           <div className="stat-item">
-            <span className="stat-label">Total Time</span>
+            <span className="stat-label">Words Found</span>
+            <span className="stat-value">{totalWordsFound} / {totalWords}</span>
+          </div>
+          <div className="stat-item">
+            <span className="stat-label">Time Taken</span>
             <span className="stat-value">{time}</span>
           </div>
         </div>

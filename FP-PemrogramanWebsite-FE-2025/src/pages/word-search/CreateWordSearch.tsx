@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { ArrowLeft, Plus, X, Upload, AlertCircle, Smile, Brain, Zap } from 'lucide-react';
+import { ArrowLeft, Plus, X, Upload, Smile, Brain, Zap } from 'lucide-react';
 import toast from 'react-hot-toast';
 import {
   AlertDialog,
@@ -21,26 +21,33 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 
-// Schema sesuai BE
+// --- SCHEMA & TYPES ---
+
 const createWordSearchSchema = z.object({
   name: z.string().min(1, 'Game name is required').max(128),
   description: z.string().max(256).optional(),
-  thumbnail_image: z.any(),
-  words: z.array(z.string().min(2).max(20)).min(1, 'At least 1 word required').max(20),
+  // Thumbnail dihandle manual via state, jadi kita buat optional di schema form
+  thumbnail_image: z.any().optional(),
+  // Words dihandle manual via state, tapi kita validasi array-nya
+  words: z.array(z.string()).min(1, 'At least 1 word required'),
+  // Gunakan coerce agar input HTML (string) otomatis jadi number
   grid_size: z.coerce.number().min(8).max(20),
   time_limit: z.coerce.number().min(30).max(600),
   lives: z.coerce.number().min(1).max(10),
-  directions: z.array(z.enum(['horizontal', 'vertical', 'diagonal'])).min(1),
+  directions: z.array(z.string()).min(1),
   is_publish_immediately: z.boolean(),
 });
 
-type CreateWordSearchForm = z.infer<typeof createWordSearchSchema>;
+// Infer tipe data langsung dari schema Zod
+type CreateWordSearchSchemaType = z.infer<typeof createWordSearchSchema>;
 
 type DifficultyLevel = 'easy' | 'medium' | 'hard';
 
 export default function CreateWordSearch() {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
+  
+  // State Manual untuk UI
   const [wordInput, setWordInput] = useState('');
   const [words, setWords] = useState<string[]>([]);
   const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
@@ -49,21 +56,30 @@ export default function CreateWordSearch() {
   const [errorMessage, setErrorMessage] = useState('');
   const [difficulty, setDifficulty] = useState<DifficultyLevel>('medium');
 
+  // React Hook Form
+  // PERBAIKAN: Hapus Generic <CreateWordSearchForm> agar tipe dideteksi otomatis dari resolver
   const {
     register,
     handleSubmit,
     formState: { errors },
     setValue,
-  } = useForm<CreateWordSearchForm>({
+    watch,
+  } = useForm({
     resolver: zodResolver(createWordSearchSchema),
     defaultValues: {
+      name: '',
+      description: '',
       grid_size: 15,
       time_limit: 480,
       lives: 5,
       directions: ['horizontal', 'vertical', 'diagonal'],
       is_publish_immediately: false,
+      words: [],
     },
   });
+
+  // Watch nilai switch untuk UI
+  const isPublishImmediately = watch('is_publish_immediately');
 
   const getDifficultyLimits = (level: DifficultyLevel) => {
     switch (level) {
@@ -83,11 +99,12 @@ export default function CreateWordSearch() {
     setValue('grid_size', limits.gridSize);
     setValue('time_limit', limits.timeLimit);
     setValue('lives', limits.lives);
-    setValue('directions', limits.directions as ('horizontal' | 'vertical' | 'diagonal')[]);
+    setValue('directions', limits.directions);
   };
 
   const handleAddWord = () => {
     const trimmedWord = wordInput.trim().toUpperCase();
+    
     if (trimmedWord.length < 2 || trimmedWord.length > 20) {
       toast.error('Word must be 2-20 characters');
       return;
@@ -105,14 +122,15 @@ export default function CreateWordSearch() {
     
     const newWords = [...words, trimmedWord];
     setWords(newWords);
-    setValue('words', newWords);
+    // Update value form agar validasi schema lulus (karena schema butuh min 1 word)
+    setValue('words', newWords, { shouldValidate: true });
     setWordInput('');
   };
 
   const handleRemoveWord = (index: number) => {
     const newWords = words.filter((_, i) => i !== index);
     setWords(newWords);
-    setValue('words', newWords);
+    setValue('words', newWords, { shouldValidate: true });
   };
 
   const handleThumbnailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -131,7 +149,9 @@ export default function CreateWordSearch() {
     }
   };
 
-  const onSubmit = async (data: CreateWordSearchForm) => {
+  // Submit Handler
+  // Kita gunakan tipe data yang di-infer dari Zod
+  const onSubmit = async (data: CreateWordSearchSchemaType) => {
     if (words.length === 0) {
       toast.error('Please add at least one word');
       return;
@@ -163,12 +183,10 @@ export default function CreateWordSearch() {
       formData.append('lives', data.lives.toString());
       formData.append('is_publish_immediately', data.is_publish_immediately.toString());
       
-      // Add words as array
       words.forEach(word => {
         formData.append('words[]', word);
       });
       
-      // Add directions as array
       data.directions.forEach(dir => {
         formData.append('directions[]', dir);
       });
@@ -196,6 +214,7 @@ export default function CreateWordSearch() {
         <div className="max-w-4xl mx-auto">
           <Button
             variant="ghost"
+            type="button"
             className="pl-0 hover:bg-transparent text-orange-500 hover:text-orange-600 mb-2"
             onClick={() => navigate('/create-projects')}
           >
@@ -224,7 +243,7 @@ export default function CreateWordSearch() {
                 className="mt-1"
               />
               {errors.name && (
-                <p className="text-sm text-red-500 mt-1">{errors.name.message}</p>
+                <p className="text-sm text-red-500 mt-1">{errors.name?.message as string}</p>
               )}
             </div>
 
@@ -238,7 +257,7 @@ export default function CreateWordSearch() {
                 rows={3}
               />
               {errors.description && (
-                <p className="text-sm text-red-500 mt-1">{errors.description.message}</p>
+                <p className="text-sm text-red-500 mt-1">{errors.description?.message as string}</p>
               )}
             </div>
 
@@ -322,7 +341,7 @@ export default function CreateWordSearch() {
               {words.length}/{getDifficultyLimits(difficulty).maxWords} words added ({difficulty.toUpperCase()} limit)
             </p>
             {errors.words && (
-              <p className="text-sm text-red-500">{errors.words.message}</p>
+              <p className="text-sm text-red-500">{errors.words?.message as string}</p>
             )}
           </div>
 
@@ -415,6 +434,7 @@ export default function CreateWordSearch() {
               </div>
               <Switch
                 id="publish"
+                checked={isPublishImmediately}
                 onCheckedChange={(checked) => setValue('is_publish_immediately', checked)}
               />
             </div>
